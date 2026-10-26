@@ -53,7 +53,7 @@ Usage:
                                offer the OAuth walkthrough when accounts are on the shared client
   gd ui [--port N]             browser control panel on 127.0.0.1 (default port 5590)
   gd update                    update OnlyDrive itself (SHA-256 verified) and the pinned rclone
-  gd version                   print version
+  gd version [--short]         print version; --short = just the number (for scripts)
 `
 
 func main() {
@@ -107,7 +107,7 @@ func main() {
 	case "update":
 		err = cmdUpdate()
 	case "version", "--version", "-v":
-		fmt.Println("gd " + config.Version + " (rclone v" + config.PinnedRcloneVersion + ")")
+		err = cmdVersion(rest)
 	case "help", "--help", "-h":
 		fmt.Print(usage)
 	default:

@@ -8,3 +8,8 @@ const Number = "0.1.4"
 
 // String returns the version with the conventional leading "v".
 func String() string { return "v" + Number }
+
+// Short returns the bare release number with no decoration ("0.1.4"), the
+// machine-readable form for shell scripts and installers
+// (`gd version --short`).
+func Short() string { return Number }
