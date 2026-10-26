@@ -759,6 +759,19 @@ func failedCheck(checks []doctor.Check, name string) bool {
 	return false
 }
 
+// cmdVersion prints the version; --short (or -s) prints the bare release
+// number for shell scripts and installers.
+func cmdVersion(rest []string) error {
+	for _, a := range rest {
+		if a == "--short" || a == "-s" {
+			fmt.Println(version.Short())
+			return nil
+		}
+	}
+	fmt.Println("gd " + config.Version + " (rclone v" + config.PinnedRcloneVersion + ")")
+	return nil
+}
+
 func cmdUpdate() error {
 	// 1. OnlyDrive itself: download the newest release, verify SHA-256
 	// against the release checksums.txt, swap atomically.
