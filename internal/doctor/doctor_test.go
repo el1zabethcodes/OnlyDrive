@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -96,4 +97,88 @@ func TestRunOAuthCheckCoversThreeBranches(t *testing.T) {
 			t.Fatal("oauth check missing")
 		}
 	})
+}
+
+// TestReportOf pins the overall verdict: OK only when every check passed.
+func TestReportOf(t *testing.T) {
+	allOK := []Check{
+		{"rclone", true, "rclone v1.68.2"},
+		{"daemon", true, "rclone rcd on 127.0.0.1:5572"},
+	}
+	if r := ReportOf(allOK); !r.OK {
+		t.Fatalf("all checks passed, report must be ok, got %+v", r)
+	}
+	oneBad := append(allOK, Check{"accounts", false, "no Google accounts added (run: gd add)"})
+	if r := ReportOf(oneBad); r.OK {
+		t.Fatal("a failed check must fail the report")
+	}
+}
+
+// TestReportJSON pins the machine-readable shape of `gd doctor --json`:
+// tagged lowercase keys, values that survive a round-trip, indented output.
+func TestReportJSON(t *testing.T) {
+	report := ReportOf([]Check{
+		{"rclone", true, "rclone v1.68.2"},
+		{"accounts", false, "no Google accounts added (run: gd add)"},
+	})
+	out, err := report.JSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var back struct {
+		OK     bool    `json:"ok"`
+		Checks []Check `json:"checks"`
+	}
+	if err := json.Unmarshal([]byte(out), &back); err != nil {
+		t.Fatalf("not valid JSON: %v\n%s", err, out)
+	}
+	if back.OK {
+		t.Fatal("ok must be false when a check failed")
+	}
+	if len(back.Checks) != 2 {
+		t.Fatalf("want 2 checks after the round-trip, got %d", len(back.Checks))
+	}
+	got := back.Checks[1]
+	if got.Name != "accounts" || got.OK || got.Detail != "no Google accounts added (run: gd add)" {
+		t.Fatalf("check lost in the round-trip: %+v", got)
+	}
+	for _, key := range []string{`"ok"`, `"checks"`, `"name"`, `"detail"`} {
+		if !strings.Contains(out, key) {
+			t.Fatalf("output missing tagged key %s\n%s", key, out)
+		}
+	}
+	if !strings.Contains(out, "\n  \"") {
+		t.Fatalf("output must be indented for readability\n%s", out)
+	}
+}
+
+// TestReportJSONFromRun makes sure a real Run's checks marshal too, not just
+// hand-made ones, and the verdict matches the raw checks.
+func TestReportJSONFromRun(t *testing.T) {
+	withTempHome(t)
+	checks, err := Run(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := ReportOf(checks).JSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back Report
+	if err := json.Unmarshal([]byte(out), &back); err != nil {
+		t.Fatalf("real report is not valid JSON: %v\n%s", err, out)
+	}
+	if len(back.Checks) == 0 {
+		t.Fatal("real report must carry its checks")
+	}
+	anyBad := false
+	for _, c := range checks {
+		if !c.OK {
+			anyBad = true
+		}
+	}
+	if back.OK == anyBad {
+		t.Fatalf("verdict mismatch: ok=%v but failed checks present=%v", back.OK, anyBad)
+	}
 }

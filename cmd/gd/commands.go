@@ -697,10 +697,13 @@ func cmdMCP(rest []string) error {
 // --- doctor / update ------------------------------------------------------------
 
 func cmdDoctor(rest []string) error {
-	fix := false
+	fix, asJSON := false, false
 	for _, a := range rest {
-		if a == "--fix" || a == "-f" {
+		switch a {
+		case "--fix", "-f":
 			fix = true
+		case "--json":
+			asJSON = true
 		}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -708,6 +711,20 @@ func cmdDoctor(rest []string) error {
 	checks, err := doctor.Run(ctx, fix)
 	if err != nil {
 		return err
+	}
+	// --json is for scripts and agents: machine-readable report only, no
+	// interactive offers, same exit-code contract as the text report.
+	if asJSON {
+		report := doctor.ReportOf(checks)
+		out, err := report.JSON()
+		if err != nil {
+			return err
+		}
+		fmt.Println(out)
+		if !report.OK {
+			return &exitError{code: 1}
+		}
+		return nil
 	}
 	bad := printChecks(checks)
 	// With --fix, a failed oauth check means accounts still mint and refresh

@@ -115,7 +115,7 @@ header.
 | `gd mcp install <client>` | register MCP in a client |
 | `gd mcp prompt [file]` | write an AGENTS.md for LLM agents |
 | `gd ui [--port N]` | browser control panel |
-| `gd doctor [--fix]` | diagnostics + auto-fix |
+| `gd doctor [--fix] [--json]` | diagnostics + auto-fix (`--json` for scripts) |
 | `gd update` | update OnlyDrive itself (SHA-256-verified) and rclone |
 
 ## MCP tools
