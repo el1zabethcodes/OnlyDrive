@@ -3,6 +3,7 @@ package doctor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,6 +20,35 @@ type Check struct {
 	Name   string `json:"name"`
 	OK     bool   `json:"ok"`
 	Detail string `json:"detail"`
+}
+
+// Report is a finished doctor run: the checks plus the overall verdict.
+// It is the shape `gd doctor --json` prints for scripts and agents.
+type Report struct {
+	OK     bool    `json:"ok"`
+	Checks []Check `json:"checks"`
+}
+
+// ReportOf wraps raw checks with the overall verdict: OK only when every
+// check passed.
+func ReportOf(checks []Check) Report {
+	ok := true
+	for _, c := range checks {
+		if !c.OK {
+			ok = false
+			break
+		}
+	}
+	return Report{OK: ok, Checks: checks}
+}
+
+// JSON renders the report as readable indented JSON (two-space indent).
+func (r Report) JSON() (string, error) {
+	b, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // Run executes all checks (fix=true installs rclone/WinFsp when missing).
