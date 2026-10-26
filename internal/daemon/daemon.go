@@ -193,6 +193,11 @@ func EnsureMounted() ([]config.Mount, error) {
 			}
 			target = t
 		}
+		// A stored letter can be taken by another drive since the last run;
+		// fail the target check instead of the confusing rclone mount error.
+		if err := config.ValidateMountTarget(target); err != nil {
+			continue // leave registered; user can `gd mount` manually
+		}
 		if err := m.MountRemote(context.Background(), reg.Remote, target, reg.VolName); err != nil {
 			continue // leave registered; user can `gd mount` manually
 		}

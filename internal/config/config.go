@@ -192,7 +192,7 @@ func NextFreeLetter() (string, error) {
 		}
 		return letter, nil
 	}
-	return "", fmt.Errorf("no free drive letter found")
+	return "", fmt.Errorf("no free drive letter between D: and Z: (free one with: gd unmount, or release a letter taken by another drive)")
 }
 
 // WriteRcloneRemoteWithApp writes/updates the [remote] section in rclone.conf.
