@@ -332,6 +332,9 @@ func mountRemote(cfg *config.Config, remote, path, vol, account string) error {
 	if err != nil {
 		return err
 	}
+	if err := config.ValidateMountTarget(target); err != nil {
+		return err
+	}
 	if err := m.MountRemote(context.Background(), remote, target, vol); err != nil {
 		return fmt.Errorf("mount failed: %w (is the mount backend installed? run: gd doctor)", err)
 	}

@@ -31,9 +31,35 @@ func MountTarget(name string) (string, error) {
 	}
 	mp := filepath.Join(DefaultMountRoot(), name)
 	if err := os.MkdirAll(mp, 0o755); err != nil {
-		return "", fmt.Errorf("create mountpoint %s: %w", mp, err)
+		return "", fmt.Errorf("mount point '%s' is already in use or inaccessible: %w", mp, err)
+	}
+	if err := ValidateMountTarget(mp); err != nil {
+		return "", err
 	}
 	return mp, nil
+}
+
+// ValidateMountTarget reports whether a mount target is usable before rclone
+// touches it. A failed rclone mount on a busy or malformed target is a
+// generic error that sends users debugging the mount backend; these errors
+// name the target as the problem and say what to do about it.
+func ValidateMountTarget(target string) error {
+	if target == "" {
+		return fmt.Errorf("mount point is empty (run: gd mount to pick one)")
+	}
+	if IsDriveLetter(target) {
+		if _, err := os.Stat(target + `\`); err == nil {
+			return fmt.Errorf("mount point '%s' is already in use or inaccessible (free it with: gd unmount, or remove the drive using the letter)", target)
+		}
+		return nil
+	}
+	if !filepath.IsAbs(target) {
+		return fmt.Errorf("mount point '%s' is not an absolute path (use a full path like %s)", target, filepath.Join(DefaultMountRoot(), "acc1"))
+	}
+	if fi, err := os.Stat(target); err == nil && !fi.IsDir() {
+		return fmt.Errorf("mount point '%s' is already in use or inaccessible (a file occupies it)", target)
+	}
+	return nil
 }
 
 // IsDriveLetter reports whether a stored mount target is a Windows drive
